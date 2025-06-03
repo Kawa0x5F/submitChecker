@@ -1,0 +1,14 @@
+# Rust
+/target/
+/Cargo.lock
+/src-tauri/target/
+/src-tauri/Cargo.lock
+
+# Node
+/node_modules/
+/frontend/node_modules/
+/frontend/dist/
+
+# Docker
+*.log
+.docker/
