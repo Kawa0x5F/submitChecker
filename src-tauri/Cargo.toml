@@ -26,5 +26,6 @@ tauri-plugin-fs = "2.3.0"
 tauri-plugin-shell = "2.0.0"
 tauri-plugin-log = "2.4.0"
 tauri-plugin-os = "2.0.0"
-tokio = { version = "1.38", features = ["full"] }
+tokio = { version = "1", features = ["full", "fs"] }
 uuid = { version = "1.9", features = ["v4"] }
+tauri-plugin-dialog = "2.2.2"
