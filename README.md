@@ -1,5 +1,7 @@
 # submitChecker
 
+DockerコンテナでPythonコードを実行し、その結果をRustのGUIツール、Tauri上で表示する。
+
 # Usage
 
 Dockerコンテナのビルド
