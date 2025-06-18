@@ -1,4 +1,5 @@
 // src/main.rs
+
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod executor;
@@ -12,7 +13,7 @@ use uuid::Uuid;
 #[tauri::command]
 async fn run_multiple_submissions(
     app: tauri::AppHandle,
-    folder_paths: Vec<String>,
+    folder_paths: Vec<String>, // ここで受け取るのは out-folder のパスのリスト
     input_file_path: String,
 ) -> Result<String, String> {
     let mut overall_results = String::new();
@@ -22,40 +23,78 @@ async fn run_multiple_submissions(
         .await
         .map_err(|e| format!("Failed to read input file {}: {}", input_file_path, e))?;
 
-    for (i, folder_path_str) in folder_paths.iter().enumerate() {
-        let folder_path = PathBuf::from(folder_path_str);
+    // --- ここから変更箇所 ---
+
+    // 処理対象となる個別の提出フォルダ(in-folder)のリストを格納するVec
+    let mut submission_folders: Vec<PathBuf> = Vec::new();
+
+    // 1. 受け取った各 out-folder を探索し、中の in-folder をリストアップする
+    for outer_folder_path_str in folder_paths {
+        let outer_folder_path = PathBuf::from(outer_folder_path_str);
+        if !outer_folder_path.is_dir() {
+            let msg = format!(
+                "Warning: Provided path is not a directory, skipping: {}\n",
+                outer_folder_path.display()
+            );
+            overall_results.push_str(&msg);
+            eprintln!("{}", msg);
+            continue;
+        }
+
+        let mut entries = fs::read_dir(&outer_folder_path).await.map_err(|e| {
+            format!(
+                "Failed to read directory {}: {}",
+                outer_folder_path.display(),
+                e
+            )
+        })?;
+
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+            // エントリがディレクトリ（in-folder）であれば、処理対象リストに追加
+            if path.is_dir() {
+                submission_folders.push(path);
+            }
+        }
+    }
+
+    if submission_folders.is_empty() {
+        overall_results.push_str("No submission folders found to process.\n");
+        return Ok(overall_results);
+    }
+
+    // 2. リストアップした各 in-folder をループ処理して実行する
+    for folder_path in submission_folders {
+        // --- ここまでが変更箇所 ---
+
+        // folder_path は in-folder の PathBuf
         let folder_name = folder_path
             .file_name()
             .and_then(|s| s.to_str())
-            .unwrap_or(&format!("Folder_{}", i + 1))
+            .unwrap_or(&format!("Folder_{}", Uuid::new_v4())) // フォルダ名が取れない場合のためのフォールバック
             .to_string();
 
         overall_results.push_str(&format!("--- Running Submission: {} ---\n", folder_name));
 
         let mut code_file_path_in_folder: Option<PathBuf> = None;
-        if folder_path.is_dir() {
-            let mut entries = fs::read_dir(&folder_path).await.map_err(|e| {
-                format!("Failed to read directory {}: {}", folder_path.display(), e)
-            })?;
+        // is_dir()のチェックは既に行われているのでここでは不要
+        let mut entries = fs::read_dir(&folder_path)
+            .await
+            .map_err(|e| format!("Failed to read directory {}: {}", folder_path.display(), e))?;
 
-            // コンパイラの提案に合わせて修正
-            while let Ok(Some(entry)) = entries.next_entry().await {
-                // entry は tokio::fs::DirEntry 型
-                let path = entry.path();
-                if path.is_file() {
-                    if let Some(extension) = path.extension() {
-                        if extension == "py" {
-                            code_file_path_in_folder = Some(path);
-                            break;
-                        }
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(extension) = path.extension() {
+                    if extension == "py" {
+                        code_file_path_in_folder = Some(path);
+                        break;
                     }
                 }
             }
-            // Note: 上記のループでは Result が Err の場合と Option が None の場合はループを抜けます。
-            // もし Err の場合に明示的なエラーメッセージを overall_results に追加したい場合は、
-            // 以前の match を使ったアプローチの方が適しています。
-            // この修正はコンパイルエラーを解消するための最小限の変更です。
         }
+
+        // --- 以降の処理は元のコードと同じ ---
 
         let actual_code_file_path = match code_file_path_in_folder {
             Some(p) => p,
