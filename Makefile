@@ -19,7 +19,7 @@ build_docker:
 build_tauri:
 	@echo "Building Tauri application (release)..."
 	# src-tauri ディレクトリに移動して cargo tauri build を実行
-	cd src-tauri && cargo tauri build --release
+	cd src-tauri && cargo tauri build
 
 build_frontend:
 	@echo "Building frontend application..."
