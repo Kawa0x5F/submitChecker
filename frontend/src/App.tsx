@@ -1,15 +1,33 @@
 import { useState } from "react";
-import { invoke } from '@tauri-apps/api/core';
-import { ask } from '@tauri-apps/plugin-dialog';
+// import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog'
 import "./App.css";
 
 // 文字列を表示する
 function App() {
-	const [greetMsg, setGreetMsg] = useState<string>();
-	const [name, setName] = useState<string>();
+	const [folderPath, setFolderPath] = useState<string>();
+    const [errorMessage, setErrorMessage] = useState<string>('');
 
-	async function greet() {
-		setGreetMsg(await invoke("greet", { name }));
+	async function select_file_paht() {
+		try{
+			const selectedPath = await open({
+			multiple: false,
+			directory: true,
+			})
+			
+			if (typeof selectedPath === 'string') {
+				/* フォルダが選択された時 */
+				setFolderPath(selectedPath ?? "");
+				setErrorMessage('');
+			} else {
+				/* フォルダが選択されなかった時 */
+				setErrorMessage('フォルダが選択されませんでした');
+			}
+        } catch (error) {
+            // エラーハンドリング
+            console.error('フォルダ選択中にエラーが発生しました:', error);
+            setErrorMessage('エラーが発生しました。');
+        }
 	}
 
 	return(
@@ -20,19 +38,23 @@ function App() {
 				className="row"
 				onSubmit={(e)=> {
 					e.preventDefault();
-					greet();
+					select_file_paht();
 				}}
 			>
-				<input
-					id="greet-input"
-					onChange={(e) => setName(e.currentTarget.value)}
-					placeholder="Enter a name..."
-				 />
-				 <button type="submit">Greet</button>
+				 <button type="submit">Select Folder</button>
 			</form>
 
-			<p>{greetMsg}</p>
-	</div>
+            {folderPath && (
+                <p style={{ marginTop: '1rem' }}>
+                    選択されたフォルダー: <code>{folderPath}</code>
+                </p>
+            )}
+
+            {errorMessage && (
+                <p style={{ marginTop: '1rem', color: 'red' }}>
+                    {errorMessage}
+                </p>
+            )}	</div>
     )
 }
 
