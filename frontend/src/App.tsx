@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { invoke } from '@tauri-apps/api/core';
+import { ask } from '@tauri-apps/plugin-dialog';
 import "./App.css";
 
 // 文字列を表示する
