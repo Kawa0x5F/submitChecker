@@ -8,7 +8,7 @@ function App() {
 	const [folderPath, setFolderPath] = useState<string>();
     const [errorMessage, setErrorMessage] = useState<string>('');
 
-	async function select_file_paht() {
+	async function select_file_path() {
 		try{
 			const selectedPath = await open({
 			multiple: false,
@@ -38,7 +38,7 @@ function App() {
 				className="row"
 				onSubmit={(e)=> {
 					e.preventDefault();
-					select_file_paht();
+					select_file_path();
 				}}
 			>
 				 <button type="submit">Select Folder</button>
